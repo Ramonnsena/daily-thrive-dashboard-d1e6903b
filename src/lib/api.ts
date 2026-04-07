@@ -1,4 +1,4 @@
-const API_BASE_URL = "http://54.232.227.118";
+const API_BASE_URL = "";
 
 export interface LoginRequest {
   email: string;
