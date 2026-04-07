@@ -12,13 +12,16 @@ export interface LoginResponse {
 }
 
 export interface RegisterRequest {
-  name: string;
+  firstname: string;
+  surname: string;
   email: string;
   password: string;
+  confirmPassword: string;
 }
 
 export interface RegisterResponse {
   message?: string;
+  errors?: Record<string, string[]> | string[];
   [key: string]: unknown;
 }
 
@@ -48,9 +51,10 @@ export async function registerUser(data: RegisterRequest): Promise<RegisterRespo
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
-    throw new Error(
-      errorData?.message || `Erro ao cadastrar. Código: ${response.status}`
-    );
+    if (errorData) {
+      throw new Error(JSON.stringify(errorData));
+    }
+    throw new Error(`Erro ao cadastrar. Código: ${response.status}`);
   }
 
   return response.json();

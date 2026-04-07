@@ -6,7 +6,8 @@ import { toast } from "sonner";
 
 const Register = () => {
   const navigate = useNavigate();
-  const [name, setName] = useState("");
+  const [firstname, setFirstname] = useState("");
+  const [surname, setSurname] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -16,13 +17,35 @@ const Register = () => {
   const [error, setError] = useState("");
 
   const validate = (): string | null => {
-    if (!name.trim()) return "Informe seu nome.";
+    if (!firstname.trim()) return "Informe seu primeiro nome.";
+    if (!surname.trim()) return "Informe seu sobrenome.";
     if (!email.trim()) return "Informe seu email.";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
       return "Email inválido.";
-    if (password.length < 6) return "A senha deve ter pelo menos 6 caracteres.";
+    if (password.length < 8)
+      return "A senha deve ter pelo menos 8 caracteres.";
+    if (!/[A-Z]/.test(password))
+      return "A senha deve conter pelo menos uma letra maiúscula.";
+    if (!/[a-z]/.test(password))
+      return "A senha deve conter pelo menos uma letra minúscula.";
     if (password !== confirmPassword) return "As senhas não coincidem.";
     return null;
+  };
+
+  const parseApiErrors = (err: unknown): string => {
+    if (err instanceof Error) {
+      try {
+        const parsed = JSON.parse(err.message);
+        if (parsed.errors) {
+          const msgs = Object.values(parsed.errors).flat();
+          return msgs.join(" ");
+        }
+        return parsed.message || err.message;
+      } catch {
+        return err.message;
+      }
+    }
+    return "Não foi possível criar a conta. Tente novamente.";
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,18 +61,16 @@ const Register = () => {
     setLoading(true);
     try {
       await registerUser({
-        name: name.trim(),
+        firstname: firstname.trim(),
+        surname: surname.trim(),
         email: email.trim(),
         password,
+        confirmPassword,
       });
       toast.success("Conta criada com sucesso!");
       navigate("/login", { replace: true });
     } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Não foi possível criar a conta. Tente novamente."
-      );
+      setError(parseApiErrors(err));
     } finally {
       setLoading(false);
     }
@@ -61,7 +82,6 @@ const Register = () => {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-8">
       <div className="w-full max-w-md animate-fade-in">
-        {/* Brand */}
         <div className="text-center mb-8">
           <div
             className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4"
@@ -75,7 +95,6 @@ const Register = () => {
           </p>
         </div>
 
-        {/* Card */}
         <div className="glass-card rounded-2xl p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
@@ -84,24 +103,39 @@ const Register = () => {
               </div>
             )}
 
-            {/* Name */}
-            <div className="space-y-2">
-              <label htmlFor="name" className="text-sm font-medium text-foreground">
-                Nome
-              </label>
-              <input
-                id="name"
-                type="text"
-                autoComplete="name"
-                placeholder="Seu nome completo"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={loading}
-                className={inputClass}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label htmlFor="firstname" className="text-sm font-medium text-foreground">
+                  Primeiro Nome
+                </label>
+                <input
+                  id="firstname"
+                  type="text"
+                  autoComplete="given-name"
+                  placeholder="João"
+                  value={firstname}
+                  onChange={(e) => setFirstname(e.target.value)}
+                  disabled={loading}
+                  className={inputClass}
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="surname" className="text-sm font-medium text-foreground">
+                  Sobrenome
+                </label>
+                <input
+                  id="surname"
+                  type="text"
+                  autoComplete="family-name"
+                  placeholder="Silva"
+                  value={surname}
+                  onChange={(e) => setSurname(e.target.value)}
+                  disabled={loading}
+                  className={inputClass}
+                />
+              </div>
             </div>
 
-            {/* Email */}
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium text-foreground">
                 Email
@@ -118,7 +152,6 @@ const Register = () => {
               />
             </div>
 
-            {/* Password */}
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium text-foreground">
                 Senha
@@ -128,7 +161,7 @@ const Register = () => {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   autoComplete="new-password"
-                  placeholder="Mínimo 6 caracteres"
+                  placeholder="Mínimo 8 caracteres (A-z)"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loading}
@@ -145,7 +178,6 @@ const Register = () => {
               </div>
             </div>
 
-            {/* Confirm Password */}
             <div className="space-y-2">
               <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">
                 Confirmar Senha
@@ -172,7 +204,6 @@ const Register = () => {
               </div>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
               disabled={loading}
