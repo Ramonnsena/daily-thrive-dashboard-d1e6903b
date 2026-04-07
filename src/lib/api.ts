@@ -51,9 +51,10 @@ export async function registerUser(data: RegisterRequest): Promise<RegisterRespo
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => null);
-    throw new Error(
-      errorData?.message || `Erro ao cadastrar. Código: ${response.status}`
-    );
+    if (errorData) {
+      throw new Error(JSON.stringify(errorData));
+    }
+    throw new Error(`Erro ao cadastrar. Código: ${response.status}`);
   }
 
   return response.json();
