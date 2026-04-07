@@ -26,20 +26,26 @@ export interface RegisterResponse {
 }
 
 export async function loginUser(data: LoginRequest): Promise<LoginResponse> {
-  const response = await fetch(`${API_BASE_URL}/Users/login`, {
+  const payload = { email: data.email, password: data.password };
+  console.log("📤 Login request payload:", payload);
+
+  const response = await fetch(`${API_BASE_URL}/DailyFitness/Users/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
 
+  const responseData = await response.json().catch(() => null);
+  console.log("📥 Login response status:", response.status);
+  console.log("📥 Login response data:", responseData);
+
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
     throw new Error(
-      errorData?.message || `Erro ao fazer login. Código: ${response.status}`
+      responseData?.message || `Erro ao fazer login. Código: ${response.status}`
     );
   }
 
-  return response.json();
+  return responseData as LoginResponse;
 }
 
 export async function registerUser(data: RegisterRequest): Promise<RegisterResponse> {
