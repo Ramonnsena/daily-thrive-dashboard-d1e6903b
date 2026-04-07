@@ -12,13 +12,16 @@ export interface LoginResponse {
 }
 
 export interface RegisterRequest {
-  name: string;
+  firstname: string;
+  surname: string;
   email: string;
   password: string;
+  confirmPassword: string;
 }
 
 export interface RegisterResponse {
   message?: string;
+  errors?: Record<string, string[]> | string[];
   [key: string]: unknown;
 }
 
