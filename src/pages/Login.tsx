@@ -25,14 +25,16 @@ const Login = () => {
     try {
       const response = await loginUser({ email: email.trim(), password });
 
-      const token = response.token || (response as Record<string, unknown>).accessToken || "";
-      if (typeof token === "string" && token) {
-        saveAuth(token, response.user as Record<string, unknown> | undefined);
-      } else {
-        // If API returns data but no explicit token, store full response
-        saveAuth(JSON.stringify(response));
+      if (!response.success) {
+        throw new Error(response.message || "Erro ao fazer login.");
       }
 
+      const token = response.data?.token;
+      if (!token) {
+        throw new Error("Token não retornado pela API.");
+      }
+
+      saveAuth(token);
       navigate("/", { replace: true });
     } catch (err) {
       setError(
