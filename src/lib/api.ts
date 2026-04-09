@@ -27,8 +27,19 @@ export interface RegisterResponse {
   [key: string]: unknown;
 }
 
+// 🔥 Função auxiliar para tratar JSON com segurança
+async function safeJson(response: Response) {
+  try {
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
+// 🔥 LOGIN
 export async function loginUser(data: LoginRequest): Promise<LoginResponse> {
   const payload = { email: data.email, password: data.password };
+
   console.log("📤 Login request payload:", payload);
 
   const response = await fetch(`${API_BASE_URL}/DailyFitness/Users/login`, {
@@ -37,33 +48,63 @@ export async function loginUser(data: LoginRequest): Promise<LoginResponse> {
     body: JSON.stringify(payload),
   });
 
-  const responseData = await response.json().catch(() => null);
+  const responseData = await safeJson(response);
+
   console.log("📥 Login response status:", response.status);
   console.log("📥 Login response data:", responseData);
 
+  // ❌ erro HTTP (500, 502, etc)
   if (!response.ok) {
     throw new Error(
       responseData?.message || `Erro ao fazer login. Código: ${response.status}`
     );
   }
 
+  // ❌ resposta vazia
+  if (!responseData) {
+    throw new Error("Resposta da API vazia ou inválida");
+  }
+
+  // ❌ sucesso false
+  if (!responseData.success) {
+    throw new Error(responseData.message || "Falha no login");
+  }
+
+  // ❌ token ausente
+  if (!responseData.data || !responseData.data.token) {
+    throw new Error("Token não encontrado na resposta");
+  }
+
   return responseData as LoginResponse;
 }
 
-export async function registerUser(data: RegisterRequest): Promise<RegisterResponse> {
+// 🔥 REGISTER
+export async function registerUser(
+  data: RegisterRequest
+): Promise<RegisterResponse> {
+  console.log("📤 Register payload:", data);
+
   const response = await fetch(`${API_BASE_URL}/DailyFitness/Users/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
 
+  const responseData = await safeJson(response);
+
+  console.log("📥 Register response status:", response.status);
+  console.log("📥 Register response data:", responseData);
+
   if (!response.ok) {
-    const errorData = await response.json().catch(() => null);
-    if (errorData) {
-      throw new Error(JSON.stringify(errorData));
+    if (responseData) {
+      throw new Error(
+        typeof responseData === "string"
+          ? responseData
+          : JSON.stringify(responseData)
+      );
     }
     throw new Error(`Erro ao cadastrar. Código: ${response.status}`);
   }
 
-  return response.json();
+  return responseData;
 }
