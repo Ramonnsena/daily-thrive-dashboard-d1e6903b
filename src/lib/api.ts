@@ -27,15 +27,6 @@ export interface RegisterResponse {
   [key: string]: unknown;
 }
 
-// 🔥 Função auxiliar para tratar JSON com segurança
-async function safeJson(response: Response) {
-  try {
-    return await response.json();
-  } catch {
-    return null;
-  }
-}
-
 // 🔥 LOGIN
 export async function loginUser(data: LoginRequest): Promise<LoginResponse> {
   const payload = { email: data.email, password: data.password };
@@ -48,34 +39,43 @@ export async function loginUser(data: LoginRequest): Promise<LoginResponse> {
     body: JSON.stringify(payload),
   });
 
-  const responseData = await safeJson(response);
+  console.log("📥 Status:", response.status);
 
-  console.log("📥 Login response status:", response.status);
-  console.log("📥 Login response data:", responseData);
+  // 🔥 pega resposta crua
+  const text = await response.text();
+  console.log("📥 RAW response:", text);
 
-  // ❌ erro HTTP (500, 502, etc)
+  let responseData: LoginResponse | null = null;
+
+  try {
+    responseData = JSON.parse(text);
+  } catch (err) {
+    console.error("❌ Não é JSON válido:", err);
+  }
+
+  // ❌ erro HTTP
   if (!response.ok) {
     throw new Error(
       responseData?.message || `Erro ao fazer login. Código: ${response.status}`
     );
   }
 
-  // ❌ resposta vazia
+  // ❌ resposta inválida
   if (!responseData) {
-    throw new Error("Resposta da API vazia ou inválida");
+    throw new Error("Resposta da API não é JSON válido");
   }
 
-  // ❌ sucesso false
+  // ❌ falha lógica
   if (!responseData.success) {
     throw new Error(responseData.message || "Falha no login");
   }
 
-  // ❌ token ausente
-  if (!responseData.data || !responseData.data.token) {
+  // ❌ token não veio
+  if (!responseData.data?.token) {
     throw new Error("Token não encontrado na resposta");
   }
 
-  return responseData as LoginResponse;
+  return responseData;
 }
 
 // 🔥 REGISTER
@@ -90,21 +90,26 @@ export async function registerUser(
     body: JSON.stringify(data),
   });
 
-  const responseData = await safeJson(response);
+  console.log("📥 Status register:", response.status);
 
-  console.log("📥 Register response status:", response.status);
-  console.log("📥 Register response data:", responseData);
+  const text = await response.text();
+  console.log("📥 RAW register response:", text);
 
-  if (!response.ok) {
-    if (responseData) {
-      throw new Error(
-        typeof responseData === "string"
-          ? responseData
-          : JSON.stringify(responseData)
-      );
-    }
-    throw new Error(`Erro ao cadastrar. Código: ${response.status}`);
+  let responseData: RegisterResponse | null = null;
+
+  try {
+    responseData = JSON.parse(text);
+  } catch (err) {
+    console.error("❌ Register não é JSON válido:", err);
   }
 
-  return responseData;
+  if (!response.ok) {
+    throw new Error(
+      responseData
+        ? JSON.stringify(responseData)
+        : `Erro ao cadastrar. Código: ${response.status}`
+    );
+  }
+
+  return responseData || {};
 }
