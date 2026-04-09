@@ -47,7 +47,7 @@ export async function loginUser(data: LoginRequest): Promise<LoginResponse> {
     );
   }
 
-  return responseData.data as LoginResponse;
+  return responseData as LoginResponse;
 }
 
 export async function registerUser(data: RegisterRequest): Promise<RegisterResponse> {
