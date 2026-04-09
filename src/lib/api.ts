@@ -6,9 +6,11 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
-  token?: string;
-  user?: Record<string, unknown>;
-  [key: string]: unknown;
+  success: boolean;
+  message: string;
+  data?: {
+    token: string;
+  } | null;
 }
 
 export interface RegisterRequest {
