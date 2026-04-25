@@ -18,9 +18,10 @@ Deno.serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    // Remove o prefixo /functions/v1/api-proxy do path
+    // Remove qualquer prefixo até (e incluindo) "api-proxy" do path.
+    // O runtime pode entregar a URL como "/functions/v1/api-proxy/..." ou "/api-proxy/...".
     const proxyPath = url.pathname.replace(
-      /^\/functions\/v1\/api-proxy/,
+      /^.*\/api-proxy/,
       ""
     );
     const targetUrl = `${TARGET_BASE}${proxyPath}${url.search}`;
