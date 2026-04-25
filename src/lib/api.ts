@@ -1,17 +1,22 @@
 const API_BASE_URL = "";
 
+// 🔥 Wrapper genérico de resposta da API
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  message: string;
+  data: T | null;
+}
+
 export interface LoginRequest {
   email: string;
   password: string;
 }
 
-export interface LoginResponse {
-  success: boolean;
-  message: string;
-  data?: {
-    token: string;
-  } | null;
+export interface LoginData {
+  token: string;
 }
+
+export type LoginResponse = ApiResponse<LoginData>;
 
 export interface RegisterRequest {
   firstname: string;
@@ -21,10 +26,45 @@ export interface RegisterRequest {
   confirmPassword: string;
 }
 
-export interface RegisterResponse {
-  message?: string;
-  errors?: Record<string, string[]> | string[];
-  [key: string]: unknown;
+export type RegisterResponse = ApiResponse<unknown>;
+
+// 🔥 Helper genérico para processar respostas da API
+async function parseApiResponse<T>(
+  response: Response,
+  context: string
+): Promise<ApiResponse<T>> {
+  const text = await response.text();
+  console.log(`📥 [${context}] Status:`, response.status);
+  console.log(`📥 [${context}] RAW response:`, text);
+
+  let parsed: ApiResponse<T> | null = null;
+
+  if (text) {
+    try {
+      parsed = JSON.parse(text) as ApiResponse<T>;
+    } catch (err) {
+      console.error(`❌ [${context}] Resposta não é JSON válido:`, err);
+    }
+  }
+
+  // ❌ erro HTTP
+  if (!response.ok) {
+    throw new Error(
+      parsed?.message || `Erro em ${context}. Código: ${response.status}`
+    );
+  }
+
+  // ❌ resposta inválida (sem JSON)
+  if (!parsed) {
+    throw new Error(`Resposta da API (${context}) não é JSON válido`);
+  }
+
+  // 🔥 Normaliza o envelope para garantir o formato esperado
+  return {
+    success: Boolean(parsed.success),
+    message: parsed.message ?? "",
+    data: parsed.data ?? null,
+  };
 }
 
 // 🔥 LOGIN
@@ -39,43 +79,19 @@ export async function loginUser(data: LoginRequest): Promise<LoginResponse> {
     body: JSON.stringify(payload),
   });
 
-  console.log("📥 Status:", response.status);
-
-  // 🔥 pega resposta crua
-  const text = await response.text();
-  console.log("📥 RAW response:", text);
-
-  let responseData: LoginResponse | null = null;
-
-  try {
-    responseData = JSON.parse(text);
-  } catch (err) {
-    console.error("❌ Não é JSON válido:", err);
-  }
-
-  // ❌ erro HTTP
-  if (!response.ok) {
-    throw new Error(
-      responseData?.message || `Erro ao fazer login. Código: ${response.status}`
-    );
-  }
-
-  // ❌ resposta inválida
-  if (!responseData) {
-    throw new Error("Resposta da API não é JSON válido");
-  }
+  const result = await parseApiResponse<LoginData>(response, "login");
 
   // ❌ falha lógica
-  if (!responseData.success) {
-    throw new Error(responseData.message || "Falha no login");
+  if (!result.success) {
+    throw new Error(result.message || "Falha no login");
   }
 
-  // ❌ token não veio
-  if (!responseData.data?.token) {
+  // ❌ token não veio (data pode ser null em respostas genéricas)
+  if (!result.data?.token) {
     throw new Error("Token não encontrado na resposta");
   }
 
-  return responseData;
+  return result;
 }
 
 // 🔥 REGISTER
@@ -90,26 +106,12 @@ export async function registerUser(
     body: JSON.stringify(data),
   });
 
-  console.log("📥 Status register:", response.status);
+  const result = await parseApiResponse<unknown>(response, "register");
 
-  const text = await response.text();
-  console.log("📥 RAW register response:", text);
-
-  let responseData: RegisterResponse | null = null;
-
-  try {
-    responseData = JSON.parse(text);
-  } catch (err) {
-    console.error("❌ Register não é JSON válido:", err);
+  // ❌ falha lógica
+  if (!result.success) {
+    throw new Error(result.message || "Falha no cadastro");
   }
 
-  if (!response.ok) {
-    throw new Error(
-      responseData
-        ? JSON.stringify(responseData)
-        : `Erro ao cadastrar. Código: ${response.status}`
-    );
-  }
-
-  return responseData || {};
+  return result;
 }
