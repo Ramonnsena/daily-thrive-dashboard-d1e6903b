@@ -1,4 +1,4 @@
-// Edge Function: proxy HTTPS -> HTTP para a API DailyFitness
+// Edge Function: proxy HTTPS -> API DailyFitness
 // Resolve mixed content e CORS em produção
 
 const corsHeaders = {
@@ -8,16 +8,15 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
 };
 
-// API redireciona HTTP -> HTTPS (307), então chamamos direto via HTTPS.
-// O certificado é self-signed/inválido, então ignoramos a verificação via client customizado.
-const TARGET_BASE = "https://54.232.227.118";
-
-// deno-lint-ignore no-explicit-any
-const client = (Deno as any).createHttpClient?.({
-  caCerts: [],
-  // Aceita certificados inválidos (self-signed, hostname mismatch, etc.)
-  // necessário porque a API tem cert inválido para o IP.
-});
+// ⚠️ Importante:
+// A API original responde em http://54.232.227.118 mas o IIS está configurado
+// para redirecionar (307) para https://54.232.227.118, e o certificado HTTPS
+// é inválido (UnknownIssuer / hostname mismatch para IP).
+//
+// Como o Deno fetch (no edge runtime) não permite ignorar certificados inválidos,
+// precisamos chamar diretamente HTTP e NÃO seguir o redirect — assim a API
+// (IIS) processa a request normalmente sem upgrade para HTTPS.
+const TARGET_BASE = "http://54.232.227.118";
 
 Deno.serve(async (req) => {
   // CORS preflight
@@ -28,16 +27,12 @@ Deno.serve(async (req) => {
   try {
     const url = new URL(req.url);
     // Remove qualquer prefixo até (e incluindo) "api-proxy" do path.
-    // O runtime pode entregar a URL como "/functions/v1/api-proxy/..." ou "/api-proxy/...".
-    const proxyPath = url.pathname.replace(
-      /^.*\/api-proxy/,
-      ""
-    );
+    // O runtime entrega a URL como "/api-proxy/..." (ou "/functions/v1/api-proxy/...").
+    const proxyPath = url.pathname.replace(/^.*\/api-proxy/, "");
     const targetUrl = `${TARGET_BASE}${proxyPath}${url.search}`;
 
     console.log(`[proxy] ${req.method} -> ${targetUrl}`);
 
-    // Repassa a request para a API real
     const init: RequestInit = {
       method: req.method,
       headers: {
@@ -45,6 +40,8 @@ Deno.serve(async (req) => {
           req.headers.get("content-type") ?? "application/json",
         Accept: "application/json",
       },
+      // ❗ NÃO seguir redirects — evita o upgrade HTTP->HTTPS que falha por cert inválido.
+      redirect: "manual",
     };
 
     if (req.method !== "GET" && req.method !== "HEAD") {
@@ -57,8 +54,24 @@ Deno.serve(async (req) => {
     const responseText = await apiResponse.text();
 
     console.log(
-      `[proxy] response status: ${apiResponse.status}, body: ${responseText}`
+      `[proxy] response status: ${apiResponse.status}, body: ${responseText.slice(0, 500)}`
     );
+
+    // Se a API insistir no redirect (3xx), retornamos um erro claro.
+    if (apiResponse.status >= 300 && apiResponse.status < 400) {
+      const location = apiResponse.headers.get("location");
+      return new Response(
+        JSON.stringify({
+          success: false,
+          message: `A API original respondeu ${apiResponse.status} redirecionando para ${location}. O servidor IIS precisa ser configurado para aceitar HTTP sem redirect, ou ter um certificado HTTPS válido instalado.`,
+          data: null,
+        }),
+        {
+          status: 502,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     return new Response(responseText, {
       status: apiResponse.status,
