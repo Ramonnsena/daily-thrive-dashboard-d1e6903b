@@ -8,7 +8,16 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
 };
 
-const TARGET_BASE = "http://54.232.227.118";
+// API redireciona HTTP -> HTTPS (307), então chamamos direto via HTTPS.
+// O certificado é self-signed/inválido, então ignoramos a verificação via client customizado.
+const TARGET_BASE = "https://54.232.227.118";
+
+// deno-lint-ignore no-explicit-any
+const client = (Deno as any).createHttpClient?.({
+  caCerts: [],
+  // Aceita certificados inválidos (self-signed, hostname mismatch, etc.)
+  // necessário porque a API tem cert inválido para o IP.
+});
 
 Deno.serve(async (req) => {
   // CORS preflight
