@@ -35,13 +35,18 @@ async function parseApiResponse<T>(
 ): Promise<ApiResponse<T>> {
   const text = await response.text();
   console.log(`📥 [${context}] Status:`, response.status);
-  console.log(`📥 [${context}] RAW response:`, text);
+  console.log(`📥 [${context}] Status Text:`, response.statusText);
+  console.log(`📥 [${context}] Headers:`, Object.fromEntries(response.headers.entries()));
+  console.log(`📥 [${context}] Response object:`, response);
+  console.log(`📥 [${context}] RAW response text:`, text);
 
   let parsed: ApiResponse<T> | null = null;
 
   if (text) {
     try {
       parsed = JSON.parse(text) as ApiResponse<T>;
+      console.log(`✅ [${context}] Parsed response object:`, parsed);
+      console.log(`✅ [${context}] Parsed response (JSON):`, JSON.stringify(parsed, null, 2));
     } catch (err) {
       console.error(`❌ [${context}] Resposta não é JSON válido:`, err);
     }
