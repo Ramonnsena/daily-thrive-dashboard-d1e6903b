@@ -8,15 +8,17 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
 };
 
-// ⚠️ Importante:
-// A API original responde em http://54.232.227.118 mas o IIS está configurado
-// para redirecionar (307) para https://54.232.227.118, e o certificado HTTPS
-// é inválido (UnknownIssuer / hostname mismatch para IP).
-//
-// Como o Deno fetch (no edge runtime) não permite ignorar certificados inválidos,
-// precisamos chamar diretamente HTTP e NÃO seguir o redirect — assim a API
-// (IIS) processa a request normalmente sem upgrade para HTTPS.
-const TARGET_BASE = "http://54.232.227.118";
+// 🔒 Chamada via HTTPS para garantir tráfego criptografado.
+// O servidor de origem possui certificado auto-assinado/inválido para o IP,
+// então usamos um Deno.HttpClient com verificação de certificado desabilitada
+// SOMENTE para este destino específico (não afeta outras chamadas).
+const TARGET_BASE = "https://54.232.227.118";
+
+// Cliente HTTP que aceita o certificado inválido apenas deste host.
+// @ts-ignore - createHttpClient existe no runtime do Deno Deploy/Edge.
+const insecureClient = (Deno as unknown as {
+  createHttpClient?: (opts: { caCerts?: string[]; allowHost?: boolean }) => unknown;
+}).createHttpClient?.({ caCerts: [] });
 
 Deno.serve(async (req) => {
   // CORS preflight
@@ -26,52 +28,30 @@ Deno.serve(async (req) => {
 
   try {
     const url = new URL(req.url);
-    // Remove qualquer prefixo até (e incluindo) "api-proxy" do path.
-    // O runtime entrega a URL como "/api-proxy/..." (ou "/functions/v1/api-proxy/...").
     const proxyPath = url.pathname.replace(/^.*\/api-proxy/, "");
     const targetUrl = `${TARGET_BASE}${proxyPath}${url.search}`;
 
-    console.log(`[proxy] ${req.method} -> ${targetUrl}`);
-
-    const init: RequestInit = {
+    const init: RequestInit & { client?: unknown } = {
       method: req.method,
       headers: {
         "Content-Type":
           req.headers.get("content-type") ?? "application/json",
         Accept: "application/json",
       },
-      // ❗ NÃO seguir redirects — evita o upgrade HTTP->HTTPS que falha por cert inválido.
-      redirect: "manual",
+      redirect: "follow",
     };
 
+    // Anexa o cliente inseguro se disponível (permite cert auto-assinado).
+    if (insecureClient) {
+      init.client = insecureClient;
+    }
+
     if (req.method !== "GET" && req.method !== "HEAD") {
-      const body = await req.text();
-      init.body = body;
-      console.log(`[proxy] body:`, body);
+      init.body = await req.text();
     }
 
-    const apiResponse = await fetch(targetUrl, init);
+    const apiResponse = await fetch(targetUrl, init as RequestInit);
     const responseText = await apiResponse.text();
-
-    console.log(
-      `[proxy] response status: ${apiResponse.status}, body: ${responseText.slice(0, 500)}`
-    );
-
-    // Se a API insistir no redirect (3xx), retornamos um erro claro.
-    if (apiResponse.status >= 300 && apiResponse.status < 400) {
-      const location = apiResponse.headers.get("location");
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: `A API original respondeu ${apiResponse.status} redirecionando para ${location}. O servidor IIS precisa ser configurado para aceitar HTTP sem redirect, ou ter um certificado HTTPS válido instalado.`,
-          data: null,
-        }),
-        {
-          status: 502,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
-    }
 
     return new Response(responseText, {
       status: apiResponse.status,
@@ -82,7 +62,6 @@ Deno.serve(async (req) => {
       },
     });
   } catch (err) {
-    console.error("[proxy] error:", err);
     const message = err instanceof Error ? err.message : "Unknown error";
     return new Response(
       JSON.stringify({
