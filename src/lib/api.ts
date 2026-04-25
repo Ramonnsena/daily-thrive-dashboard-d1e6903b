@@ -1,4 +1,12 @@
-const API_BASE_URL = "";
+// 🌐 Em produção (publicado), usa a Edge Function do Lovable Cloud como proxy
+// para evitar erro de mixed content (HTTPS -> HTTP) e CORS.
+// Em dev (vite), usa o proxy do vite.config.ts via path relativo.
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+const IS_DEV = import.meta.env.DEV;
+
+const API_BASE_URL = IS_DEV
+  ? "" // dev: usa proxy do Vite (/DailyFitness/...)
+  : `${SUPABASE_URL}/functions/v1/api-proxy`; // prod: Edge Function proxy
 
 // 🔥 Wrapper genérico de resposta da API
 export interface ApiResponse<T = unknown> {
