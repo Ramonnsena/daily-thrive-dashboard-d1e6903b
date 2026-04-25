@@ -42,21 +42,14 @@ async function parseApiResponse<T>(
   context: string
 ): Promise<ApiResponse<T>> {
   const text = await response.text();
-  console.log(`📥 [${context}] Status:`, response.status);
-  console.log(`📥 [${context}] Status Text:`, response.statusText);
-  console.log(`📥 [${context}] Headers:`, Object.fromEntries(response.headers.entries()));
-  console.log(`📥 [${context}] Response object:`, response);
-  console.log(`📥 [${context}] RAW response text:`, text);
 
   let parsed: ApiResponse<T> | null = null;
 
   if (text) {
     try {
       parsed = JSON.parse(text) as ApiResponse<T>;
-      console.log(`✅ [${context}] Parsed response object:`, parsed);
-      console.log(`✅ [${context}] Parsed response (JSON):`, JSON.stringify(parsed, null, 2));
-    } catch (err) {
-      console.error(`❌ [${context}] Resposta não é JSON válido:`, err);
+    } catch {
+      // Resposta não é JSON válido — tratado abaixo
     }
   }
 
@@ -84,8 +77,6 @@ async function parseApiResponse<T>(
 export async function loginUser(data: LoginRequest): Promise<LoginResponse> {
   const payload = { email: data.email, password: data.password };
 
-  console.log("📤 Login request payload:", payload);
-
   const response = await fetch(`${API_BASE_URL}/DailyFitness/Users/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -111,8 +102,6 @@ export async function loginUser(data: LoginRequest): Promise<LoginResponse> {
 export async function registerUser(
   data: RegisterRequest
 ): Promise<RegisterResponse> {
-  console.log("📤 Register payload:", data);
-
   const response = await fetch(`${API_BASE_URL}/DailyFitness/Users/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
