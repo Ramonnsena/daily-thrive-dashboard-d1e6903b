@@ -152,8 +152,8 @@ const ResetPassword = () => {
               </div>
 
               {!token && (
-                <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 px-4 py-3 text-sm text-amber-500 flex items-start gap-2 animate-fade-in">
-                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                <div className="rounded-xl bg-muted/50 border border-border px-4 py-3 text-sm text-muted-foreground flex items-start gap-2 animate-fade-in">
+                  <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-foreground" />
                   <span>
                     Token de recuperação ausente. Acesse este link a partir do
                     email recebido.
