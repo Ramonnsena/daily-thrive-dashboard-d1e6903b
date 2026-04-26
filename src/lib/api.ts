@@ -36,6 +36,20 @@ export interface RegisterRequest {
 
 export type RegisterResponse = ApiResponse<unknown>;
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export type ForgotPasswordResponse = ApiResponse<unknown>;
+
+export interface ResetPasswordRequest {
+  token: string;
+  password: string;
+  confirmPassword: string;
+}
+
+export type ResetPasswordResponse = ApiResponse<unknown>;
+
 // 🔥 Helper genérico para processar respostas da API
 async function parseApiResponse<T>(
   response: Response,
@@ -113,6 +127,50 @@ export async function registerUser(
   // ❌ falha lógica
   if (!result.success) {
     throw new Error(result.message || "Falha no cadastro");
+  }
+
+  return result;
+}
+
+// 🔥 FORGOT PASSWORD - solicita email com token de reset
+export async function forgotPassword(
+  data: ForgotPasswordRequest
+): Promise<ForgotPasswordResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/DailyFitness/Users/forgot-password`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }
+  );
+
+  const result = await parseApiResponse<unknown>(response, "forgot-password");
+
+  if (!result.success) {
+    throw new Error(result.message || "Falha ao solicitar recuperação de senha");
+  }
+
+  return result;
+}
+
+// 🔥 RESET PASSWORD - redefine a senha com token recebido
+export async function resetPassword(
+  data: ResetPasswordRequest
+): Promise<ResetPasswordResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/DailyFitness/Users/reset-password`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }
+  );
+
+  const result = await parseApiResponse<unknown>(response, "reset-password");
+
+  if (!result.success) {
+    throw new Error(result.message || "Falha ao redefinir a senha");
   }
 
   return result;
