@@ -122,6 +122,7 @@ const Login = () => {
                   Esqueci minha senha?
                 </Link>
               </div>
+            </div>
 
             {/* Submit */}
             <button
