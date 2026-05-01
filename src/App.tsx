@@ -9,6 +9,8 @@ import Register from "./pages/Register.tsx";
 import ForgotPassword from "./pages/ForgotPassword.tsx";
 import ResetPassword from "./pages/ResetPassword.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import ProtectedRoute from "./components/ProtectedRoute.tsx";
+import PublicOnlyRoute from "./components/PublicOnlyRoute.tsx";
 
 const queryClient = new QueryClient();
 
@@ -19,12 +21,45 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
+          {/* Rotas privadas: exigem autenticação válida */}
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <Index />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Rotas públicas: bloqueadas se já autenticado */}
+          <Route
+            path="/login"
+            element={
+              <PublicOnlyRoute>
+                <Login />
+              </PublicOnlyRoute>
+            }
+          />
+          <Route
+            path="/register"
+            element={
+              <PublicOnlyRoute>
+                <Register />
+              </PublicOnlyRoute>
+            }
+          />
+          <Route
+            path="/forgot-password"
+            element={
+              <PublicOnlyRoute>
+                <ForgotPassword />
+              </PublicOnlyRoute>
+            }
+          />
+          {/* Reset-password permanece sempre acessível (pode vir de e-mail) */}
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/reset-password/:token" element={<ResetPassword />} />
+
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

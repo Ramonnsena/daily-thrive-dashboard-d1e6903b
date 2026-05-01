@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Eye, EyeOff, Loader2, Dumbbell } from "lucide-react";
 import { loginUser } from "@/lib/api";
 import { saveAuth } from "@/lib/auth";
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as { from?: { pathname?: string } } | null)?.from?.pathname || "/";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -35,7 +37,7 @@ const Login = () => {
       }
 
       saveAuth(token);
-      navigate("/", { replace: true });
+      navigate(from, { replace: true });
     } catch (err) {
       setError(
         err instanceof Error

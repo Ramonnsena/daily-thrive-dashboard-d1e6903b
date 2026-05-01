@@ -1,5 +1,7 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Home, Utensils, Dumbbell, Users, Trophy, Menu, X, LogOut, User } from "lucide-react";
+import { clearAuth } from "@/lib/auth";
 
 const navItems = [
   { label: "Home", icon: Home, href: "/", active: true },
@@ -10,8 +12,14 @@ const navItems = [
 ];
 
 const DashboardHeader = () => {
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+
+  const handleLogout = () => {
+    clearAuth();
+    navigate("/login", { replace: true });
+  };
 
   return (
     <header className="w-full max-w-6xl mx-auto mb-8">
@@ -61,10 +69,14 @@ const DashboardHeader = () => {
                   <User size={16} />
                   Perfil
                 </a>
-                <a href="#" className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full text-left flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all"
+                >
                   <LogOut size={16} />
                   Sair
-                </a>
+                </button>
               </div>
             )}
           </div>
