@@ -190,3 +190,25 @@ export async function resetPassword(
 
   return result;
 }
+
+// 🔥 GET PROFILE - retorna informações do perfil autenticado
+export async function getProfile(userId: string): Promise<ProfileResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/DailyFitness/Users/get-profile/${encodeURIComponent(userId)}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeader(),
+      },
+    }
+  );
+
+  const result = await parseApiResponse<ProfileData>(response, "get-profile");
+
+  if (!result.success) {
+    throw new Error(result.message || "Falha ao carregar perfil");
+  }
+
+  return result;
+}
