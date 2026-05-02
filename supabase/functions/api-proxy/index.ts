@@ -31,13 +31,21 @@ Deno.serve(async (req) => {
     const proxyPath = url.pathname.replace(/^.*\/api-proxy/, "");
     const targetUrl = `${TARGET_BASE}${proxyPath}${url.search}`;
 
+    const forwardedHeaders: Record<string, string> = {
+      "Content-Type":
+        req.headers.get("content-type") ?? "application/json",
+      Accept: "application/json",
+    };
+
+    // Encaminha o Authorization do cliente (Bearer JWT) para a API alvo.
+    const authHeader = req.headers.get("authorization");
+    if (authHeader) {
+      forwardedHeaders["Authorization"] = authHeader;
+    }
+
     const init: RequestInit & { client?: unknown } = {
       method: req.method,
-      headers: {
-        "Content-Type":
-          req.headers.get("content-type") ?? "application/json",
-        Accept: "application/json",
-      },
+      headers: forwardedHeaders,
       redirect: "follow",
     };
 

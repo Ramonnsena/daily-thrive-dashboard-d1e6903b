@@ -50,6 +50,21 @@ export interface ResetPasswordRequest {
 
 export type ResetPasswordResponse = ApiResponse<unknown>;
 
+export interface ProfileData {
+  id: string;
+  firstname: string;
+  surname: string;
+  email: string;
+}
+
+export type ProfileResponse = ApiResponse<ProfileData>;
+
+// Importação dinâmica via require seria circular — usamos leitura direta do storage.
+function getAuthHeader(): Record<string, string> {
+  const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 // 🔥 Helper genérico para processar respostas da API
 async function parseApiResponse<T>(
   response: Response,
@@ -171,6 +186,28 @@ export async function resetPassword(
 
   if (!result.success) {
     throw new Error(result.message || "Falha ao redefinir a senha");
+  }
+
+  return result;
+}
+
+// 🔥 GET PROFILE - retorna informações do perfil autenticado
+export async function getProfile(userId: string): Promise<ProfileResponse> {
+  const response = await fetch(
+    `${API_BASE_URL}/DailyFitness/Users/get-profile/${encodeURIComponent(userId)}`,
+    {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeader(),
+      },
+    }
+  );
+
+  const result = await parseApiResponse<ProfileData>(response, "get-profile");
+
+  if (!result.success) {
+    throw new Error(result.message || "Falha ao carregar perfil");
   }
 
   return result;
