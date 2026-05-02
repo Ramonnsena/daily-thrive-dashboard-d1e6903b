@@ -11,6 +11,7 @@ import ResetPassword from "./pages/ResetPassword.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import ProtectedRoute from "./components/ProtectedRoute.tsx";
 import PublicOnlyRoute from "./components/PublicOnlyRoute.tsx";
+import SessionExpiredDialog from "./components/SessionExpiredDialog.tsx";
 
 const queryClient = new QueryClient();
 
@@ -20,6 +21,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <SessionExpiredDialog />
         <Routes>
           {/* Rotas privadas: exigem autenticação válida */}
           <Route
