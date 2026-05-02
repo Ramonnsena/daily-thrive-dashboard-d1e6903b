@@ -121,14 +121,15 @@ const DashboardHeader = () => {
                       </p>
                     )}
                   </div>
-                  <a
-                    href="#"
+                  <Link
+                    to="/perfil"
                     role="menuitem"
+                    onClick={() => setProfileOpen(false)}
                     className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-all"
                   >
                     <User size={16} />
                     Perfil
-                  </a>
+                  </Link>
                   <button
                     type="button"
                     role="menuitem"
