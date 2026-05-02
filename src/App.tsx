@@ -21,6 +21,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <SessionExpiredDialog />
         <Routes>
           {/* Rotas privadas: exigem autenticação válida */}
           <Route
