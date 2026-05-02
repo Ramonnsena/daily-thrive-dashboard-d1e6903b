@@ -33,6 +33,14 @@ const App = () => (
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/perfil"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Rotas públicas: bloqueadas se já autenticado */}
           <Route
